@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hiragana &amp; Katakana Wort-Generator</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%23c0392b%22/><text x=%2250%22 y=%2272%22 font-size=%2270%22 text-anchor=%22middle%22 font-family=%22'Hiragino Sans','Yu Gothic',sans-serif%22 fill=%22%23ffffff%22>の</text></svg>">
+<style>
+  :root{
+    --bg: #f6f5f2;
+    --panel: #ffffff;
+    --border: #ddd8cf;
+    --text: #2b2a28;
+    --muted: #756f64;
+    --accent: #c0392b;
+    --accent-soft: #f6e4e1;
+    --selected: #c0392b;
+    --selected-text: #ffffff;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+  }
+  h1{
+    font-size: 22px;
+    margin: 0 0 4px;
+  }
+  .subtitle{
+    color: var(--muted);
+    margin: 0 0 24px;
+    font-size: 14px;
+  }
+  .container{
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .panel h2{
+    font-size: 15px;
+    margin: 0 0 12px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+  }
+  .panel h2 .count{
+    font-weight: normal;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .section-title{
+    font-size: 13px;
+    color: var(--muted);
+    margin: 16px 0 8px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+  }
+  .section-title:first-of-type{ margin-top: 0; }
+  .mini-btn{
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .mini-btn:hover{ background: var(--accent-soft); color: var(--accent); }
+  .kana-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+    gap: 6px;
+  }
+  .kana-btn{
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 6px 2px 5px;
+    cursor: pointer;
+    text-align: center;
+    line-height: 1.15;
+    transition: background .1s, color .1s, border-color .1s;
+  }
+  .kana-btn .glyph{
+    font-size: 20px;
+    display:block;
+  }
+  .kana-btn .romaji{
+    font-size: 10px;
+    color: var(--muted);
+    display:block;
+  }
+  .kana-btn.selected{
+    background: var(--selected);
+    border-color: var(--selected);
+  }
+  .kana-btn.selected .glyph,
+  .kana-btn.selected .romaji{
+    color: var(--selected-text);
+  }
+  .kana-btn:hover:not(.selected){
+    border-color: var(--accent);
+  }
+  .row{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-end;
+  }
+  .field{
+    display:flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .field label{
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .field-row{
+    display:flex;
+    align-items:center;
+    gap: 6px;
+  }
+  input[type=number]{
+    width: 60px;
+    padding: 7px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .toggle-group{
+    display:flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow:hidden;
+  }
+  .toggle-group button{
+    border: none;
+    background: var(--panel);
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text);
+    border-right: 1px solid var(--border);
+  }
+  .toggle-group button:last-child{ border-right: none; }
+  .toggle-group button.active{
+    background: var(--accent);
+    color: #fff;
+  }
+  .generate-btn{
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 22px;
+    font-size: 15px;
+    cursor: pointer;
+    align-self: flex-start;
+  }
+  .generate-btn:hover{ opacity: .92; }
+  .generate-btn:disabled{
+    background: var(--border);
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+  .warning{
+    color: var(--accent);
+    font-size: 13px;
+    display:none;
+  }
+  .empty-hint{
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+  .practice-card{
+    text-align: center;
+    padding: 36px 20px 28px;
+    position: relative;
+  }
+  .practice-card .badge{
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+  .kana-big{
+    font-size: 92px;
+    line-height: 1.15;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .romaji-big{
+    font-size: 26px;
+    color: var(--muted);
+    white-space: nowrap;
+    text-align: center;
+    margin-top: 16px;
+  }
+  .done-msg{
+    font-size: 22px;
+  }
+  .practice-controls{
+    display: flex;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  #nextBtn{
+    padding: 12px 34px;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div>
+    <h1>Hiragana &amp; Katakana Wort-Generator</h1>
+    <p class="subtitle">Wähle gezielt die Silben aus, die du üben willst — der Generator baut daraus zufällige Übungswörter.</p>
+  </div>
+
+  <div class="panel" id="practicePanel">
+    <h2>Ergebnis <span class="count" id="progressLabel"></span></h2>
+    <div id="output">
+      <p class="empty-hint">Noch keine Wörter generiert.</p>
+    </div>
+    <div class="practice-controls" id="practiceControls" style="display:none;">
+      <button class="generate-btn" id="nextBtn">Weiter →</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>1. Silben auswählen <span class="count" id="selCount">0 ausgewählt</span></h2>
+    <div id="pickerRoot"></div>
+  </div>
+
+  <div class="panel">
+    <h2>2. Einstellungen</h2>
+    <div class="row">
+      <div class="field">
+        <label>Schriftart</label>
+        <div class="toggle-group" id="scriptToggle">
+          <button data-value="hiragana" class="active">Hiragana</button>
+          <button data-value="katakana">Katakana</button>
+          <button data-value="both">Beides</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Anzeige</label>
+        <div class="toggle-group" id="displayToggle">
+          <button data-value="romaji" class="active">Japanisch + Romaji</button>
+          <button data-value="kana-only">Nur Japanisch</button>
+          <button data-value="romaji-only">Nur Romaji</button>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:16px;">
+      <div class="field">
+        <label>Wortlänge (Zeichen von–bis)</label>
+        <div class="field-row">
+          <input type="number" id="minLen" min="1" max="8" value="2">
+          <span>bis</span>
+          <input type="number" id="maxLen" min="1" max="8" value="4">
+        </div>
+      </div>
+      <div class="field">
+        <label>Anzahl Wörter</label>
+        <input type="number" id="wordCount" min="1" max="60" value="12">
+      </div>
+    </div>
+  </div>
+
+  <button class="generate-btn" id="generateBtn">Wörter generieren</button>
+  <p class="warning" id="warning">Bitte wähle mindestens eine Silbe aus.</p>
+</div>
+
+<script>
+// Jede Silbe (Mora) einmal mit Hiragana- und Katakana-Form.
+// g = Gruppe: basic (Grundzeichen), dakuten (Trübungszeichen), youon (Kombinationen wie kya/sha)
+const KANA = [
+  {r:'a',h:'あ',k:'ア',g:'basic'},{r:'i',h:'い',k:'イ',g:'basic'},{r:'u',h:'う',k:'ウ',g:'basic'},
+  {r:'e',h:'え',k:'エ',g:'basic'},{r:'o',h:'お',k:'オ',g:'basic'},
+  {r:'ka',h:'か',k:'カ',g:'basic'},{r:'ki',h:'き',k:'キ',g:'basic'},{r:'ku',h:'く',k:'ク',g:'basic'},
+  {r:'ke',h:'け',k:'ケ',g:'basic'},{r:'ko',h:'こ',k:'コ',g:'basic'},
+  {r:'sa',h:'さ',k:'サ',g:'basic'},{r:'shi',h:'し',k:'シ',g:'basic'},{r:'su',h:'す',k:'ス',g:'basic'},
+  {r:'se',h:'せ',k:'セ',g:'basic'},{r:'so',h:'そ',k:'ソ',g:'basic'},
+  {r:'ta',h:'た',k:'タ',g:'basic'},{r:'chi',h:'ち',k:'チ',g:'basic'},{r:'tsu',h:'つ',k:'ツ',g:'basic'},
+  {r:'te',h:'て',k:'テ',g:'basic'},{r:'to',h:'と',k:'ト',g:'basic'},
+  {r:'na',h:'な',k:'ナ',g:'basic'},{r:'ni',h:'に',k:'ニ',g:'basic'},{r:'nu',h:'ぬ',k:'ヌ',g:'basic'},
+  {r:'ne',h:'ね',k:'ネ',g:'basic'},{r:'no',h:'の',k:'ノ',g:'basic'},
+  {r:'ha',h:'は',k:'ハ',g:'basic'},{r:'hi',h:'ひ',k:'ヒ',g:'basic'},{r:'fu',h:'ふ',k:'フ',g:'basic'},
+  {r:'he',h:'へ',k:'ヘ',g:'basic'},{r:'ho',h:'ほ',k:'ホ',g:'basic'},
+  {r:'ma',h:'ま',k:'マ',g:'basic'},{r:'mi',h:'み',k:'ミ',g:'basic'},{r:'mu',h:'む',k:'ム',g:'basic'},
+  {r:'me',h:'め',k:'メ',g:'basic'},{r:'mo',h:'も',k:'モ',g:'basic'},
+  {r:'ya',h:'や',k:'ヤ',g:'basic'},{r:'yu',h:'ゆ',k:'ユ',g:'basic'},{r:'yo',h:'よ',k:'ヨ',g:'basic'},
+  {r:'ra',h:'ら',k:'ラ',g:'basic'},{r:'ri',h:'り',k:'リ',g:'basic'},{r:'ru',h:'る',k:'ル',g:'basic'},
+  {r:'re',h:'れ',k:'レ',g:'basic'},{r:'ro',h:'ろ',k:'ロ',g:'basic'},
+  {r:'wa',h:'わ',k:'ワ',g:'basic'},{r:'wo',h:'を',k:'ヲ',g:'basic'},{r:'n',h:'ん',k:'ン',g:'basic'},
+
+  {r:'ga',h:'が',k:'ガ',g:'dakuten'},{r:'gi',h:'ぎ',k:'ギ',g:'dakuten'},{r:'gu',h:'ぐ',k:'グ',g:'dakuten'},
+  {r:'ge',h:'げ',k:'ゲ',g:'dakuten'},{r:'go',h:'ご',k:'ゴ',g:'dakuten'},
+  {r:'za',h:'ざ',k:'ザ',g:'dakuten'},{r:'ji',h:'じ',k:'ジ',g:'dakuten'},{r:'zu',h:'ず',k:'ズ',g:'dakuten'},
+  {r:'ze',h:'ぜ',k:'ゼ',g:'dakuten'},{r:'zo',h:'ぞ',k:'ゾ',g:'dakuten'},
+  {r:'da',h:'だ',k:'ダ',g:'dakuten'},{r:'ji',h:'ぢ',k:'ヂ',g:'dakuten'},{r:'zu',h:'づ',k:'ヅ',g:'dakuten'},
+  {r:'de',h:'で',k:'デ',g:'dakuten'},{r:'do',h:'ど',k:'ド',g:'dakuten'},
+  {r:'ba',h:'ば',k:'バ',g:'dakuten'},{r:'bi',h:'び',k:'ビ',g:'dakuten'},{r:'bu',h:'ぶ',k:'ブ',g:'dakuten'},
+  {r:'be',h:'べ',k:'ベ',g:'dakuten'},{r:'bo',h:'ぼ',k:'ボ',g:'dakuten'},
+  {r:'pa',h:'ぱ',k:'パ',g:'dakuten'},{r:'pi',h:'ぴ',k:'ピ',g:'dakuten'},{r:'pu',h:'ぷ',k:'プ',g:'dakuten'},
+  {r:'pe',h:'ぺ',k:'ペ',g:'dakuten'},{r:'po',h:'ぽ',k:'ポ',g:'dakuten'},
+
+  {r:'kya',h:'きゃ',k:'キャ',g:'youon'},{r:'kyu',h:'きゅ',k:'キュ',g:'youon'},{r:'kyo',h:'きょ',k:'キョ',g:'youon'},
+  {r:'sha',h:'しゃ',k:'シャ',g:'youon'},{r:'shu',h:'しゅ',k:'シュ',g:'youon'},{r:'sho',h:'しょ',k:'ショ',g:'youon'},
+  {r:'cha',h:'ちゃ',k:'チャ',g:'youon'},{r:'chu',h:'ちゅ',k:'チュ',g:'youon'},{r:'cho',h:'ちょ',k:'チョ',g:'youon'},
+  {r:'nya',h:'にゃ',k:'ニャ',g:'youon'},{r:'nyu',h:'にゅ',k:'ニュ',g:'youon'},{r:'nyo',h:'にょ',k:'ニョ',g:'youon'},
+  {r:'hya',h:'ひゃ',k:'ヒャ',g:'youon'},{r:'hyu',h:'ひゅ',k:'ヒュ',g:'youon'},{r:'hyo',h:'ひょ',k:'ヒョ',g:'youon'},
+  {r:'mya',h:'みゃ',k:'ミャ',g:'youon'},{r:'myu',h:'みゅ',k:'ミュ',g:'youon'},{r:'myo',h:'みょ',k:'ミョ',g:'youon'},
+  {r:'rya',h:'りゃ',k:'リャ',g:'youon'},{r:'ryu',h:'りゅ',k:'リュ',g:'youon'},{r:'ryo',h:'りょ',k:'リョ',g:'youon'},
+  {r:'gya',h:'ぎゃ',k:'ギャ',g:'youon'},{r:'gyu',h:'ぎゅ',k:'ギュ',g:'youon'},{r:'gyo',h:'ぎょ',k:'ギョ',g:'youon'},
+  {r:'ja',h:'じゃ',k:'ジャ',g:'youon'},{r:'ju',h:'じゅ',k:'ジュ',g:'youon'},{r:'jo',h:'じょ',k:'ジョ',g:'youon'},
+  {r:'bya',h:'びゃ',k:'ビャ',g:'youon'},{r:'byu',h:'びゅ',k:'ビュ',g:'youon'},{r:'byo',h:'びょ',k:'ビョ',g:'youon'},
+  {r:'pya',h:'ぴゃ',k:'ピャ',g:'youon'},{r:'pyu',h:'ぴゅ',k:'ピュ',g:'youon'},{r:'pyo',h:'ぴょ',k:'ピョ',g:'youon'},
+];
+
+const GROUP_LABELS = { basic: 'Grundzeichen', dakuten: 'Mit Dakuten / Handakuten (゛゜)', youon: 'Kombinationen (きゃ, しゃ …)' };
+const selected = new Set(); // enthält Indizes von KANA
+
+function buildPicker(){
+  const root = document.getElementById('pickerRoot');
+  root.innerHTML = '';
+  ['basic','dakuten','youon'].forEach(group => {
+    const title = document.createElement('div');
+    title.className = 'section-title';
+    title.innerHTML = `<span>${GROUP_LABELS[group]}</span>`;
+    const btnWrap = document.createElement('span');
+    const allBtn = document.createElement('button');
+    allBtn.className = 'mini-btn';
+    allBtn.textContent = 'Alle';
+    allBtn.style.marginRight = '6px';
+    allBtn.onclick = () => toggleGroup(group, true);
+    const noneBtn = document.createElement('button');
+    noneBtn.className = 'mini-btn';
+    noneBtn.textContent = 'Keine';
+    noneBtn.onclick = () => toggleGroup(group, false);
+    btnWrap.append(allBtn, noneBtn);
+    title.appendChild(btnWrap);
+    root.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'kana-grid';
+    KANA.forEach((item, idx) => {
+      if(item.g !== group) return;
+      const btn = document.createElement('button');
+      btn.className = 'kana-btn';
+      btn.dataset.idx = idx;
+      btn.innerHTML = `<span class="glyph">${item.h}</span><span class="romaji">${item.r}</span>`;
+      btn.onclick = () => {
+        if(selected.has(idx)) selected.delete(idx); else selected.add(idx);
+        btn.classList.toggle('selected');
+        updateCount();
+      };
+      grid.appendChild(btn);
+    });
+    root.appendChild(grid);
+  });
+}
+
+function toggleGroup(group, on){
+  document.querySelectorAll('.kana-btn').forEach(btn => {
+    const idx = Number(btn.dataset.idx);
+    if(KANA[idx].g !== group) return;
+    if(on) selected.add(idx); else selected.delete(idx);
+    btn.classList.toggle('selected', on);
+  });
+  updateCount();
+}
+
+function updateCount(){
+  document.getElementById('selCount').textContent = `${selected.size} ausgewählt`;
+}
+
+let scriptMode = 'hiragana';
+let displayMode = 'romaji';
+
+document.getElementById('scriptToggle').addEventListener('click', e => {
+  if(e.target.tagName !== 'BUTTON') return;
+  scriptMode = e.target.dataset.value;
+  [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === e.target));
+});
+
+document.getElementById('displayToggle').addEventListener('click', e => {
+  if(e.target.tagName !== 'BUTTON') return;
+  displayMode = e.target.dataset.value;
+  [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === e.target));
+});
+
+function randInt(min, max){
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+let generatedWords = [];
+let currentIndex = 0;
+
+function renderCurrentWord(){
+  const output = document.getElementById('output');
+  const controls = document.getElementById('practiceControls');
+  const progressLabel = document.getElementById('progressLabel');
+  const nextBtn = document.getElementById('nextBtn');
+
+  if(generatedWords.length === 0){
+    output.innerHTML = '<p class="empty-hint">Noch keine Wörter generiert.</p>';
+    controls.style.display = 'none';
+    progressLabel.textContent = '';
+    return;
+  }
+
+  const word = generatedWords[currentIndex];
+  progressLabel.textContent = `Wort ${currentIndex + 1} von ${generatedWords.length}`;
+
+  const kanaSize = word.kana.length <= 3 ? 92 : word.kana.length <= 5 ? 68 : word.kana.length <= 6 ? 56 : 46;
+  const romajiSize = word.romaji.length <= 10 ? 26 : word.romaji.length <= 16 ? 22 : word.romaji.length <= 22 ? 19 : 16;
+  const badge = word.mixed ? `<span class="badge">${word.script === 'hiragana' ? 'Hira' : 'Kata'}</span>` : '';
+  const kanaLine = displayMode !== 'romaji-only' ? `<div class="kana-big" style="font-size:${kanaSize}px">${word.kana}</div>` : '';
+  const romajiLine = displayMode !== 'kana-only' ? `<div class="romaji-big" style="font-size:${romajiSize}px">${word.romaji}</div>` : '';
+  output.innerHTML = `<div class="practice-card">${badge}${kanaLine}${romajiLine}</div>`;
+
+  controls.style.display = 'flex';
+  nextBtn.textContent = currentIndex === generatedWords.length - 1 ? 'Fertig ✓' : 'Bestätigen, nächstes Wort →';
+  delete nextBtn.dataset.restart;
+}
+
+function showCompletion(){
+  document.getElementById('output').innerHTML = `<div class="practice-card"><p class="done-msg">🎉 Geschafft! Alle ${generatedWords.length} Wörter geübt.</p></div>`;
+  document.getElementById('progressLabel').textContent = 'Fertig';
+  const nextBtn = document.getElementById('nextBtn');
+  nextBtn.textContent = 'Nochmal von vorne';
+  nextBtn.dataset.restart = 'true';
+}
+
+document.getElementById('nextBtn').addEventListener('click', (e) => {
+  if(e.currentTarget.dataset.restart === 'true'){
+    currentIndex = 0;
+    renderCurrentWord();
+    return;
+  }
+  if(currentIndex < generatedWords.length - 1){
+    currentIndex++;
+    renderCurrentWord();
+  } else {
+    showCompletion();
+  }
+});
+
+document.getElementById('generateBtn').addEventListener('click', () => {
+  const warning = document.getElementById('warning');
+
+  if(selected.size === 0){
+    warning.style.display = 'block';
+    return;
+  }
+  warning.style.display = 'none';
+
+  let minLen = parseInt(document.getElementById('minLen').value) || 1;
+  let maxLen = parseInt(document.getElementById('maxLen').value) || minLen;
+  if(maxLen < minLen) maxLen = minLen;
+  minLen = Math.max(1, Math.min(minLen, 8));
+  maxLen = Math.max(1, Math.min(maxLen, 8));
+  const wordCount = Math.max(1, Math.min(parseInt(document.getElementById('wordCount').value) || 1, 60));
+
+  const pool = [...selected].map(idx => KANA[idx]);
+  generatedWords = [];
+
+  for(let i = 0; i < wordCount; i++){
+    const len = randInt(minLen, maxLen);
+    const script = scriptMode === 'both' ? (Math.random() < 0.5 ? 'hiragana' : 'katakana') : scriptMode;
+    let kanaStr = '';
+    const romajiParts = [];
+    for(let j = 0; j < len; j++){
+      const item = pool[Math.floor(Math.random() * pool.length)];
+      kanaStr += script === 'hiragana' ? item.h : item.k;
+      romajiParts.push(item.r);
+    }
+    generatedWords.push({ kana: kanaStr, romaji: romajiParts.join(' '), script, mixed: scriptMode === 'both' });
+  }
+
+  currentIndex = 0;
+  renderCurrentWord();
+  document.getElementById('practicePanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+buildPicker();
+</script>
+</body>
+</html>

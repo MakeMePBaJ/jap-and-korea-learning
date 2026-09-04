@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hangeul Wort-Generator</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%231a5fb4%22/><text x=%2250%22 y=%2272%22 font-size=%2260%22 text-anchor=%22middle%22 font-family=%22'Malgun Gothic','Apple SD Gothic Neo',sans-serif%22 fill=%22%23ffffff%22>한</text></svg>">
+<style>
+  :root{
+    --bg: #f4f6f8;
+    --panel: #ffffff;
+    --border: #d8dee5;
+    --text: #24292b;
+    --muted: #6b7580;
+    --accent: #1a5fb4;
+    --accent-soft: #e2ecf9;
+    --selected: #1a5fb4;
+    --selected-text: #ffffff;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+  }
+  h1{
+    font-size: 22px;
+    margin: 0 0 4px;
+  }
+  .subtitle{
+    color: var(--muted);
+    margin: 0 0 24px;
+    font-size: 14px;
+  }
+  .container{
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .panel h2{
+    font-size: 15px;
+    margin: 0 0 12px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+  }
+  .panel h2 .count{
+    font-weight: normal;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .section-title{
+    font-size: 13px;
+    color: var(--muted);
+    margin: 16px 0 8px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+  }
+  .section-title:first-of-type{ margin-top: 0; }
+  .mini-btn{
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .mini-btn:hover{ background: var(--accent-soft); color: var(--accent); }
+  .letter-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+    gap: 6px;
+  }
+  .letter-btn{
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 6px 2px 5px;
+    cursor: pointer;
+    text-align: center;
+    line-height: 1.15;
+    transition: background .1s, color .1s, border-color .1s;
+  }
+  .letter-btn .glyph{
+    font-size: 20px;
+    display:block;
+  }
+  .letter-btn .roman{
+    font-size: 10px;
+    color: var(--muted);
+    display:block;
+  }
+  .letter-btn.selected{
+    background: var(--selected);
+    border-color: var(--selected);
+  }
+  .letter-btn.selected .glyph,
+  .letter-btn.selected .roman{
+    color: var(--selected-text);
+  }
+  .letter-btn:hover:not(.selected){
+    border-color: var(--accent);
+  }
+  .row{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-end;
+  }
+  .field{
+    display:flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .field label{
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .field-row{
+    display:flex;
+    align-items:center;
+    gap: 6px;
+  }
+  input[type=number]{
+    width: 60px;
+    padding: 7px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .toggle-group{
+    display:flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow:hidden;
+  }
+  .toggle-group button{
+    border: none;
+    background: var(--panel);
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text);
+    border-right: 1px solid var(--border);
+  }
+  .toggle-group button:last-child{ border-right: none; }
+  .toggle-group button.active{
+    background: var(--accent);
+    color: #fff;
+  }
+  .generate-btn{
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 22px;
+    font-size: 15px;
+    cursor: pointer;
+    align-self: flex-start;
+  }
+  .generate-btn:hover{ opacity: .92; }
+  .generate-btn:disabled{
+    background: var(--border);
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+  .warning{
+    color: var(--accent);
+    font-size: 13px;
+    display:none;
+  }
+  .empty-hint{
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+  .practice-card{
+    text-align: center;
+    padding: 36px 20px 28px;
+    position: relative;
+  }
+  .practice-card .badge{
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+  .letter-big{
+    font-size: 92px;
+    line-height: 1.15;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .roman-big{
+    font-size: 26px;
+    color: var(--muted);
+    white-space: nowrap;
+    text-align: center;
+    margin-top: 16px;
+  }
+  .done-msg{
+    font-size: 22px;
+  }
+  .practice-controls{
+    display: flex;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  #nextBtn{
+    padding: 12px 34px;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div>
+    <h1>Hangeul Wort-Generator (한글)</h1>
+    <p class="subtitle">Wähle gezielt die Konsonanten und Vokale aus, die du üben willst — der Generator kombiniert sie zu zufälligen Silbenblöcken zum Lesen üben.</p>
+  </div>
+
+  <div class="panel" id="practicePanel">
+    <h2>Ergebnis <span class="count" id="progressLabel"></span></h2>
+    <div id="output">
+      <p class="empty-hint">Noch keine Wörter generiert.</p>
+    </div>
+    <div class="practice-controls" id="practiceControls" style="display:none;">
+      <button class="generate-btn" id="nextBtn">Weiter →</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>1. Konsonanten (자음) auswählen <span class="count" id="consCount">0 ausgewählt</span></h2>
+    <div id="consPickerRoot"></div>
+  </div>
+
+  <div class="panel">
+    <h2>2. Vokale (모음) auswählen <span class="count" id="vowelCount">0 ausgewählt</span></h2>
+    <div id="vowelPickerRoot"></div>
+  </div>
+
+  <div class="panel">
+    <h2>3. Einstellungen</h2>
+    <div class="row">
+      <div class="field">
+        <label>Schlusskonsonant (받침)</label>
+        <div class="toggle-group" id="batchimToggle">
+          <button data-value="off" class="active">Ohne</button>
+          <button data-value="on">Zufällig mit</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Anzeige</label>
+        <div class="toggle-group" id="displayToggle">
+          <button data-value="roman" class="active">Koreanisch + Umschrift</button>
+          <button data-value="kana-only">Nur Koreanisch</button>
+          <button data-value="roman-only">Nur Umschrift</button>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:16px;">
+      <div class="field">
+        <label>Wortlänge (Silben von–bis)</label>
+        <div class="field-row">
+          <input type="number" id="minLen" min="1" max="8" value="2">
+          <span>bis</span>
+          <input type="number" id="maxLen" min="1" max="8" value="4">
+        </div>
+      </div>
+      <div class="field">
+        <label>Anzahl Wörter</label>
+        <input type="number" id="wordCount" min="1" max="60" value="12">
+      </div>
+    </div>
+  </div>
+
+  <button class="generate-btn" id="generateBtn">Wörter generieren</button>
+  <p class="warning" id="warning">Bitte wähle mindestens einen Konsonanten und einen Vokal aus.</p>
+</div>
+
+<script>
+// Choseong (Anlaut-Konsonanten) in Unicode-Reihenfolge — der Array-Index entspricht direkt dem Unicode-Index.
+const LEAD = [
+  {j:'ㄱ',r:'g',g:'basic'},   {j:'ㄲ',r:'kk',g:'tense'},  {j:'ㄴ',r:'n',g:'basic'},
+  {j:'ㄷ',r:'d',g:'basic'},   {j:'ㄸ',r:'tt',g:'tense'},  {j:'ㄹ',r:'r',g:'basic'},
+  {j:'ㅁ',r:'m',g:'basic'},   {j:'ㅂ',r:'b',g:'basic'},   {j:'ㅃ',r:'pp',g:'tense'},
+  {j:'ㅅ',r:'s',g:'basic'},   {j:'ㅆ',r:'ss',g:'tense'},  {j:'ㅇ',r:'',g:'basic'},
+  {j:'ㅈ',r:'j',g:'basic'},   {j:'ㅉ',r:'jj',g:'tense'},  {j:'ㅊ',r:'ch',g:'aspirated'},
+  {j:'ㅋ',r:'k',g:'aspirated'},{j:'ㅌ',r:'t',g:'aspirated'},{j:'ㅍ',r:'p',g:'aspirated'},
+  {j:'ㅎ',r:'h',g:'basic'},
+];
+
+// Jungseong (Vokale) in Unicode-Reihenfolge — der Array-Index entspricht direkt dem Unicode-Index.
+const VOWEL = [
+  {j:'ㅏ',r:'a',g:'basic'},   {j:'ㅐ',r:'ae',g:'compound'}, {j:'ㅑ',r:'ya',g:'basic'},
+  {j:'ㅒ',r:'yae',g:'compound'},{j:'ㅓ',r:'eo',g:'basic'},  {j:'ㅔ',r:'e',g:'compound'},
+  {j:'ㅕ',r:'yeo',g:'basic'}, {j:'ㅖ',r:'ye',g:'compound'}, {j:'ㅗ',r:'o',g:'basic'},
+  {j:'ㅘ',r:'wa',g:'compound'},{j:'ㅙ',r:'wae',g:'compound'},{j:'ㅚ',r:'oe',g:'compound'},
+  {j:'ㅛ',r:'yo',g:'basic'},  {j:'ㅜ',r:'u',g:'basic'},    {j:'ㅝ',r:'wo',g:'compound'},
+  {j:'ㅞ',r:'we',g:'compound'},{j:'ㅟ',r:'wi',g:'compound'},{j:'ㅠ',r:'yu',g:'basic'},
+  {j:'ㅡ',r:'eu',g:'basic'},  {j:'ㅢ',r:'ui',g:'compound'}, {j:'ㅣ',r:'i',g:'basic'},
+];
+
+// Ausgewählte, häufig gelehrte Schlusskonsonanten (받침) mit ihrem Jongseong-Unicode-Index.
+const FINALS = [
+  {idx:1,j:'ㄱ',r:'k'}, {idx:4,j:'ㄴ',r:'n'}, {idx:8,j:'ㄹ',r:'l'}, {idx:16,j:'ㅁ',r:'m'},
+  {idx:17,j:'ㅂ',r:'p'}, {idx:19,j:'ㅅ',r:'t'}, {idx:21,j:'ㅇ',r:'ng'},
+];
+
+const CONS_GROUP_LABELS = { basic: 'Grundkonsonanten', aspirated: 'Behauchte Konsonanten (ㅋㅌㅍㅊ)', tense: 'Angespannte Konsonanten (ㄲㄸㅃㅆㅉ)' };
+const VOWEL_GROUP_LABELS = { basic: 'Grundvokale', compound: 'Kombinierte Vokale (ㅐ, ㅘ, ㅝ …)' };
+
+const selectedCons = new Set();   // Indizes in LEAD
+const selectedVowels = new Set(); // Indizes in VOWEL
+
+function buildPicker(root, data, groupOrder, groupLabels, selectedSet, countEl){
+  root.innerHTML = '';
+  groupOrder.forEach(group => {
+    const title = document.createElement('div');
+    title.className = 'section-title';
+    title.innerHTML = `<span>${groupLabels[group]}</span>`;
+    const btnWrap = document.createElement('span');
+    const allBtn = document.createElement('button');
+    allBtn.className = 'mini-btn';
+    allBtn.textContent = 'Alle';
+    allBtn.style.marginRight = '6px';
+    allBtn.onclick = () => toggleGroup(root, data, group, true, selectedSet, countEl);
+    const noneBtn = document.createElement('button');
+    noneBtn.className = 'mini-btn';
+    noneBtn.textContent = 'Keine';
+    noneBtn.onclick = () => toggleGroup(root, data, group, false, selectedSet, countEl);
+    btnWrap.append(allBtn, noneBtn);
+    title.appendChild(btnWrap);
+    root.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'letter-grid';
+    data.forEach((item, idx) => {
+      if(item.g !== group) return;
+      const btn = document.createElement('button');
+      btn.className = 'letter-btn';
+      btn.dataset.idx = idx;
+      btn.innerHTML = `<span class="glyph">${item.j}</span><span class="roman">${item.r || '—'}</span>`;
+      btn.onclick = () => {
+        if(selectedSet.has(idx)) selectedSet.delete(idx); else selectedSet.add(idx);
+        btn.classList.toggle('selected');
+        updateCounts();
+      };
+      grid.appendChild(btn);
+    });
+    root.appendChild(grid);
+  });
+}
+
+function toggleGroup(root, data, group, on, selectedSet){
+  root.querySelectorAll('.letter-btn').forEach(btn => {
+    const idx = Number(btn.dataset.idx);
+    if(data[idx].g !== group) return;
+    if(on) selectedSet.add(idx); else selectedSet.delete(idx);
+    btn.classList.toggle('selected', on);
+  });
+  updateCounts();
+}
+
+function updateCounts(){
+  document.getElementById('consCount').textContent = `${selectedCons.size} ausgewählt`;
+  document.getElementById('vowelCount').textContent = `${selectedVowels.size} ausgewählt`;
+}
+
+let batchimMode = 'off';
+let displayMode = 'roman';
+
+document.getElementById('batchimToggle').addEventListener('click', e => {
+  if(e.target.tagName !== 'BUTTON') return;
+  batchimMode = e.target.dataset.value;
+  [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === e.target));
+});
+
+document.getElementById('displayToggle').addEventListener('click', e => {
+  if(e.target.tagName !== 'BUTTON') return;
+  displayMode = e.target.dataset.value;
+  [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === e.target));
+});
+
+function randInt(min, max){
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomSyllable(consPool, vowelPool){
+  const lead = consPool[Math.floor(Math.random() * consPool.length)];
+  const vowel = vowelPool[Math.floor(Math.random() * vowelPool.length)];
+  let finalIdx = 0, finalRoman = '';
+  if(batchimMode === 'on' && Math.random() < 0.5){
+    const f = FINALS[Math.floor(Math.random() * FINALS.length)];
+    finalIdx = f.idx;
+    finalRoman = f.r;
+  }
+  const code = 0xAC00 + (lead.leadIdx * 21 + vowel.vowelIdx) * 28 + finalIdx;
+  return { char: String.fromCharCode(code), roman: lead.r + vowel.r + finalRoman };
+}
+
+let generatedWords = [];
+let currentIndex = 0;
+
+function renderCurrentWord(){
+  const output = document.getElementById('output');
+  const controls = document.getElementById('practiceControls');
+  const progressLabel = document.getElementById('progressLabel');
+  const nextBtn = document.getElementById('nextBtn');
+
+  if(generatedWords.length === 0){
+    output.innerHTML = '<p class="empty-hint">Noch keine Wörter generiert.</p>';
+    controls.style.display = 'none';
+    progressLabel.textContent = '';
+    return;
+  }
+
+  const word = generatedWords[currentIndex];
+  progressLabel.textContent = `Wort ${currentIndex + 1} von ${generatedWords.length}`;
+
+  const letterSize = word.hangeul.length <= 3 ? 92 : word.hangeul.length <= 5 ? 68 : word.hangeul.length <= 6 ? 56 : 46;
+  const romanSize = word.roman.length <= 10 ? 26 : word.roman.length <= 16 ? 22 : word.roman.length <= 22 ? 19 : 16;
+  const letterLine = displayMode !== 'roman-only' ? `<div class="letter-big" style="font-size:${letterSize}px">${word.hangeul}</div>` : '';
+  const romanLine = displayMode !== 'kana-only' ? `<div class="roman-big" style="font-size:${romanSize}px">${word.roman}</div>` : '';
+  output.innerHTML = `<div class="practice-card">${letterLine}${romanLine}</div>`;
+
+  controls.style.display = 'flex';
+  nextBtn.textContent = currentIndex === generatedWords.length - 1 ? 'Fertig ✓' : 'Bestätigen, nächstes Wort →';
+  delete nextBtn.dataset.restart;
+}
+
+function showCompletion(){
+  document.getElementById('output').innerHTML = `<div class="practice-card"><p class="done-msg">🎉 Geschafft! Alle ${generatedWords.length} Wörter geübt.</p></div>`;
+  document.getElementById('progressLabel').textContent = 'Fertig';
+  const nextBtn = document.getElementById('nextBtn');
+  nextBtn.textContent = 'Nochmal von vorne';
+  nextBtn.dataset.restart = 'true';
+}
+
+document.getElementById('nextBtn').addEventListener('click', (e) => {
+  if(e.currentTarget.dataset.restart === 'true'){
+    currentIndex = 0;
+    renderCurrentWord();
+    return;
+  }
+  if(currentIndex < generatedWords.length - 1){
+    currentIndex++;
+    renderCurrentWord();
+  } else {
+    showCompletion();
+  }
+});
+
+document.getElementById('generateBtn').addEventListener('click', () => {
+  const warning = document.getElementById('warning');
+
+  if(selectedCons.size === 0 || selectedVowels.size === 0){
+    warning.style.display = 'block';
+    return;
+  }
+  warning.style.display = 'none';
+
+  let minLen = parseInt(document.getElementById('minLen').value) || 1;
+  let maxLen = parseInt(document.getElementById('maxLen').value) || minLen;
+  if(maxLen < minLen) maxLen = minLen;
+  minLen = Math.max(1, Math.min(minLen, 8));
+  maxLen = Math.max(1, Math.min(maxLen, 8));
+  const wordCount = Math.max(1, Math.min(parseInt(document.getElementById('wordCount').value) || 1, 60));
+
+  const consPool = [...selectedCons].map(idx => ({ ...LEAD[idx], leadIdx: idx }));
+  const vowelPool = [...selectedVowels].map(idx => ({ ...VOWEL[idx], vowelIdx: idx }));
+  generatedWords = [];
+
+  for(let i = 0; i < wordCount; i++){
+    const len = randInt(minLen, maxLen);
+    let hangeulStr = '';
+    const romanParts = [];
+    for(let j = 0; j < len; j++){
+      const syll = randomSyllable(consPool, vowelPool);
+      hangeulStr += syll.char;
+      romanParts.push(syll.roman);
+    }
+    generatedWords.push({ hangeul: hangeulStr, roman: romanParts.join(' ') });
+  }
+
+  currentIndex = 0;
+  renderCurrentWord();
+  document.getElementById('practicePanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+buildPicker(document.getElementById('consPickerRoot'), LEAD, ['basic','aspirated','tense'], CONS_GROUP_LABELS, selectedCons, 'consCount');
+buildPicker(document.getElementById('vowelPickerRoot'), VOWEL, ['basic','compound'], VOWEL_GROUP_LABELS, selectedVowels, 'vowelCount');
+</script>
+</body>
+</html>
