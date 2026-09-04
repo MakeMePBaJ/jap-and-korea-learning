@@ -16,6 +16,8 @@
     --accent-soft: #f6e4e1;
     --selected: #c0392b;
     --selected-text: #ffffff;
+    --correct: #2f9e44;
+    --correct-soft: #e5f6e8;
   }
   *{ box-sizing: border-box; }
   body{
@@ -37,6 +39,29 @@
   .container{
     max-width: 900px;
     margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .tabs{
+    display:flex;
+    gap: 8px;
+  }
+  .tab-btn{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .tab-btn.active{
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .tab-view{
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -225,23 +250,69 @@
     padding: 12px 34px;
     font-size: 16px;
   }
+  .quiz-glyph{
+    margin-bottom: 24px;
+  }
+  .quiz-choices{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    gap: 10px;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+  .quiz-choice-btn{
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 14px 10px;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .quiz-choice-btn:hover:not(:disabled){ border-color: var(--accent); }
+  .quiz-choice-btn:disabled{ cursor: default; }
+  .quiz-choice-btn.correct{
+    background: var(--correct-soft);
+    border-color: var(--correct);
+    color: var(--correct);
+  }
+  .quiz-choice-btn.wrong{
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .quiz-input-row{
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .quiz-input-row input{
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 16px;
+    width: 160px;
+    text-align: center;
+  }
+  .quiz-feedback{
+    margin-top: 16px;
+    font-size: 16px;
+    min-height: 22px;
+  }
+  .quiz-feedback.correct{ color: var(--correct); }
+  .quiz-feedback.wrong{ color: var(--accent); }
 </style>
 </head>
 <body>
 <div class="container">
   <div>
     <h1>Hiragana &amp; Katakana Wort-Generator</h1>
-    <p class="subtitle">Wähle gezielt die Silben aus, die du üben willst — der Generator baut daraus zufällige Übungswörter.</p>
+    <p class="subtitle">Wähle gezielt die Silben aus, die du üben willst — als Wort-Generator oder im Quiz "Was steht da?".</p>
   </div>
 
-  <div class="panel" id="practicePanel">
-    <h2>Ergebnis <span class="count" id="progressLabel"></span></h2>
-    <div id="output">
-      <p class="empty-hint">Noch keine Wörter generiert.</p>
-    </div>
-    <div class="practice-controls" id="practiceControls" style="display:none;">
-      <button class="generate-btn" id="nextBtn">Weiter →</button>
-    </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="quiz">Quiz: Was steht da?</button>
+    <button class="tab-btn" data-tab="generator">Wort-Generator</button>
   </div>
 
   <div class="panel">
@@ -250,43 +321,81 @@
   </div>
 
   <div class="panel">
-    <h2>2. Einstellungen</h2>
-    <div class="row">
-      <div class="field">
-        <label>Schriftart</label>
-        <div class="toggle-group" id="scriptToggle">
-          <button data-value="hiragana" class="active">Hiragana</button>
-          <button data-value="katakana">Katakana</button>
-          <button data-value="both">Beides</button>
-        </div>
-      </div>
-      <div class="field">
-        <label>Anzeige</label>
-        <div class="toggle-group" id="displayToggle">
-          <button data-value="romaji" class="active">Japanisch + Romaji</button>
-          <button data-value="kana-only">Nur Japanisch</button>
-          <button data-value="romaji-only">Nur Romaji</button>
-        </div>
-      </div>
-    </div>
-    <div class="row" style="margin-top:16px;">
-      <div class="field">
-        <label>Wortlänge (Zeichen von–bis)</label>
-        <div class="field-row">
-          <input type="number" id="minLen" min="1" max="8" value="2">
-          <span>bis</span>
-          <input type="number" id="maxLen" min="1" max="8" value="4">
-        </div>
-      </div>
-      <div class="field">
-        <label>Anzahl Wörter</label>
-        <input type="number" id="wordCount" min="1" max="60" value="12">
-      </div>
+    <h2>2. Schriftart</h2>
+    <div class="toggle-group" id="scriptToggle">
+      <button data-value="hiragana" class="active">Hiragana</button>
+      <button data-value="katakana">Katakana</button>
+      <button data-value="both">Beides</button>
     </div>
   </div>
 
-  <button class="generate-btn" id="generateBtn">Wörter generieren</button>
-  <p class="warning" id="warning">Bitte wähle mindestens eine Silbe aus.</p>
+  <div id="generatorView" class="tab-view" style="display:none;">
+    <div class="panel" id="practicePanel">
+      <h2>Ergebnis <span class="count" id="progressLabel"></span></h2>
+      <div id="output">
+        <p class="empty-hint">Noch keine Wörter generiert.</p>
+      </div>
+      <div class="practice-controls" id="practiceControls" style="display:none;">
+        <button class="generate-btn" id="nextBtn">Weiter →</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Einstellungen</h2>
+      <div class="row">
+        <div class="field">
+          <label>Anzeige</label>
+          <div class="toggle-group" id="displayToggle">
+            <button data-value="romaji" class="active">Japanisch + Romaji</button>
+            <button data-value="kana-only">Nur Japanisch</button>
+            <button data-value="romaji-only">Nur Romaji</button>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:16px;">
+        <div class="field">
+          <label>Wortlänge (Zeichen von–bis)</label>
+          <div class="field-row">
+            <input type="number" id="minLen" min="1" max="8" value="2">
+            <span>bis</span>
+            <input type="number" id="maxLen" min="1" max="8" value="4">
+          </div>
+        </div>
+        <div class="field">
+          <label>Anzahl Wörter</label>
+          <input type="number" id="wordCount" min="1" max="60" value="12">
+        </div>
+      </div>
+    </div>
+
+    <button class="generate-btn" id="generateBtn">Wörter generieren</button>
+    <p class="warning" id="warning">Bitte wähle mindestens eine Silbe aus.</p>
+  </div>
+
+  <div id="quizView" class="tab-view">
+    <div class="panel" id="quizPanel">
+      <h2>Quiz <span class="count" id="quizScoreLabel">0 / 0 richtig</span></h2>
+      <div id="quizOutput">
+        <p class="empty-hint">Klicke auf "Quiz starten", um zu beginnen.</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Einstellungen</h2>
+      <div class="row">
+        <div class="field">
+          <label>Antwortmodus</label>
+          <div class="toggle-group" id="quizModeToggle">
+            <button data-value="choice" class="active">Multiple Choice</button>
+            <button data-value="input">Eingabe (Romaji tippen)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="generate-btn" id="quizStartBtn">Quiz starten</button>
+    <p class="warning" id="quizWarning">Bitte wähle mindestens eine Silbe aus.</p>
+  </div>
 </div>
 
 <script>
@@ -337,7 +446,7 @@ const KANA = [
 ];
 
 const GROUP_LABELS = { basic: 'Grundzeichen', dakuten: 'Mit Dakuten / Handakuten (゛゜)', youon: 'Kombinationen (きゃ, しゃ …)' };
-const selected = new Set(); // enthält Indizes von KANA
+const selected = new Set(); // enthält Indizes von KANA, gemeinsam für Generator und Quiz
 
 function buildPicker(){
   const root = document.getElementById('pickerRoot');
@@ -395,6 +504,7 @@ function updateCount(){
 
 let scriptMode = 'hiragana';
 let displayMode = 'romaji';
+let quizMode = 'choice';
 
 document.getElementById('scriptToggle').addEventListener('click', e => {
   if(e.target.tagName !== 'BUTTON') return;
@@ -408,9 +518,35 @@ document.getElementById('displayToggle').addEventListener('click', e => {
   [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === e.target));
 });
 
+document.getElementById('quizModeToggle').addEventListener('click', e => {
+  if(e.target.tagName !== 'BUTTON') return;
+  quizMode = e.target.dataset.value;
+  [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === e.target));
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    const tab = btn.dataset.tab;
+    document.getElementById('generatorView').style.display = tab === 'generator' ? 'flex' : 'none';
+    document.getElementById('quizView').style.display = tab === 'quiz' ? 'flex' : 'none';
+  });
+});
+
 function randInt(min, max){
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+function shuffle(arr){
+  const a = [...arr];
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ---------- Wort-Generator ---------- */
 
 let generatedWords = [];
 let currentIndex = 0;
@@ -500,6 +636,114 @@ document.getElementById('generateBtn').addEventListener('click', () => {
   currentIndex = 0;
   renderCurrentWord();
   document.getElementById('practicePanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+/* ---------- Quiz: Was steht da? ---------- */
+
+let quizCorrect = 0;
+let quizTotal = 0;
+let lastQuizItem = null;
+let currentQuestion = null;
+
+function updateQuizScore(){
+  document.getElementById('quizScoreLabel').textContent = `${quizCorrect} / ${quizTotal} richtig`;
+}
+
+function pickQuizItem(){
+  const pool = [...selected].map(idx => KANA[idx]);
+  let item;
+  do {
+    item = pool[Math.floor(Math.random() * pool.length)];
+  } while(pool.length > 1 && lastQuizItem && item.h === lastQuizItem.h && item.k === lastQuizItem.k);
+  lastQuizItem = item;
+  return item;
+}
+
+function buildQuizChoices(correctItem){
+  const pool = [...selected].map(idx => KANA[idx]);
+  const distractPool = pool.length >= 4 ? pool : KANA;
+  const options = new Set([correctItem.r]);
+  let guard = 0;
+  while(options.size < 4 && options.size < distractPool.length && guard < 200){
+    const cand = distractPool[Math.floor(Math.random() * distractPool.length)];
+    options.add(cand.r);
+    guard++;
+  }
+  return shuffle([...options]);
+}
+
+function renderQuizQuestion(){
+  const quizOutput = document.getElementById('quizOutput');
+  const item = pickQuizItem();
+  const script = scriptMode === 'both' ? (Math.random() < 0.5 ? 'hiragana' : 'katakana') : scriptMode;
+  const glyph = script === 'hiragana' ? item.h : item.k;
+  currentQuestion = { item, glyph, script };
+
+  let html = `<div class="practice-card"><div class="kana-big quiz-glyph">${glyph}</div>`;
+  if(quizMode === 'choice'){
+    const choices = buildQuizChoices(item);
+    html += `<div class="quiz-choices">${choices.map(c => `<button class="quiz-choice-btn" data-value="${c}">${c}</button>`).join('')}</div>`;
+  } else {
+    html += `<div class="quiz-input-row"><input type="text" id="quizInput" autocomplete="off" spellcheck="false" placeholder="Romaji eingeben…"><button class="generate-btn" id="quizSubmitBtn">Prüfen</button></div>`;
+  }
+  html += `<div class="quiz-feedback" id="quizFeedback"></div>`;
+  html += `<div class="practice-controls" id="quizControls" style="display:none;"><button class="generate-btn" id="quizNextBtn">Weiter →</button></div>`;
+  html += `</div>`;
+  quizOutput.innerHTML = html;
+
+  if(quizMode === 'choice'){
+    quizOutput.querySelectorAll('.quiz-choice-btn').forEach(btn => {
+      btn.addEventListener('click', () => evaluateQuizAnswer(btn.dataset.value, btn));
+    });
+  } else {
+    const input = document.getElementById('quizInput');
+    const submitBtn = document.getElementById('quizSubmitBtn');
+    const submit = () => { if(input.value.trim() !== '') evaluateQuizAnswer(input.value, null); };
+    submitBtn.addEventListener('click', submit);
+    input.addEventListener('keydown', e => { if(e.key === 'Enter') submit(); });
+    input.focus();
+  }
+
+  document.getElementById('quizNextBtn').addEventListener('click', () => renderQuizQuestion());
+}
+
+function evaluateQuizAnswer(answer, btnEl){
+  const correct = currentQuestion.item.r;
+  const isCorrect = answer.trim().toLowerCase() === correct.toLowerCase();
+  quizTotal++;
+  if(isCorrect) quizCorrect++;
+  updateQuizScore();
+
+  const feedback = document.getElementById('quizFeedback');
+  feedback.textContent = isCorrect ? '✓ Richtig!' : `✗ Falsch — richtig wäre "${correct}"`;
+  feedback.className = 'quiz-feedback ' + (isCorrect ? 'correct' : 'wrong');
+
+  if(quizMode === 'choice'){
+    document.querySelectorAll('.quiz-choice-btn').forEach(b => {
+      b.disabled = true;
+      if(b.dataset.value.toLowerCase() === correct.toLowerCase()) b.classList.add('correct');
+      else if(b === btnEl) b.classList.add('wrong');
+    });
+  } else {
+    document.getElementById('quizInput').disabled = true;
+    document.getElementById('quizSubmitBtn').disabled = true;
+  }
+  document.getElementById('quizControls').style.display = 'flex';
+}
+
+document.getElementById('quizStartBtn').addEventListener('click', () => {
+  const warning = document.getElementById('quizWarning');
+  if(selected.size === 0){
+    warning.style.display = 'block';
+    return;
+  }
+  warning.style.display = 'none';
+  quizCorrect = 0;
+  quizTotal = 0;
+  lastQuizItem = null;
+  updateQuizScore();
+  renderQuizQuestion();
+  document.getElementById('quizPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
 buildPicker();
